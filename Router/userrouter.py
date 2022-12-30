@@ -40,14 +40,15 @@ async def registration(user:User):
         return {"message":"Please provide all the information"}       
 
 
-@user_router.post('/login')
+@user_router.get('/login')
 async def user_login(user_info:Request):
     req_user_info = await user_info.json()
     print(req_user_info["password"])
     if (req_user_info["email"] and req_user_info["password"]):
-        get_user = await User.find({"email":req_user_info["email"]}).to_list()
-        if(len(get_user)==1):
-            is_match=bcrypt.checkpw(req_user_info["password"],get_user["password"])
+        get_user = await User.find_one({"email":req_user_info["email"]})
+        print(type (get_user))
+        if(get_user!=None):
+            is_match=bcrypt.checkpw(req_user_info["password"].encode('utf-8'),get_user.password.encode('utf-8'))
             if(is_match):
                 return {"message":"Ok valid user"}
             else:
@@ -61,7 +62,24 @@ async def user_login(user_info:Request):
         return {"message":"Please fill all the fields"}
     
 
-   
+
+@user_router.post('/resetpassword')
+async def reset_password(user_info:Request):
+    req_user_info = await user_info.json()
+    if(req_user_info["email"]  and req_user_info["password"] and req_user_info["confirmpassword"]):
+        get_user = await User.find_one({"email":req_user_info["email"]})
+        if(get_user!=None):
+            is_match=bcrypt.checkpw(req_user_info["password"].encode('utf-8'),get_user.password.encode('utf8'))
+            if(is_match):
+                hashed_password=hasher.hash_the_password(req_user_info["confirmpassword"].encode('utf8'))
+                get_user.password=hashed_password
+                return {"message":"password reset successfully"}
+            else:
+                return {"message":"password wrong"} 
+        else:
+            return {"message":"No such user found"}           
+    else:
+        return{"message":"Please fill all the fields"}  
     
 
 
